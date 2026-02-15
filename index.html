@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nokia Legacy Converter</title>
+    
+    <!-- Fonts: Inter (English) and Heebo (Hebrew) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+
+    <!-- FFmpeg v0.11.6 (Stable for static hosting) -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Heebo', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            500: '#8b5cf6', // Violet
+                            600: '#7c3aed',
+                        },
+                        dark: {
+                            800: '#1e1e2e', // Card bg
+                            900: '#11111b', // Main bg
+                        }
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar for the log */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #11111b; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        
+        /* Glassmorphism utility */
+        .glass {
+            background: rgba(30, 30, 46, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Smooth fade transition for sections */
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+        .fade-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .hidden-section { display: none; }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-200 font-sans min-h-screen flex flex-col items-center justify-center p-4 selection:bg-brand-500 selection:text-white transition-all duration-300">
+
+    <!-- Background Decoration -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-brand-500/20 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]"></div>
+    </div>
+
+    <!-- Language Toggle -->
+    <div class="absolute top-6 right-6 z-50">
+        <button id="langToggle" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-white bg-light-800 border border-gray-700 hover:border-brand-500 transition-colors text-xs font-bold tracking-wider">
+            <i data-lucide="globe" class="w-3 h-3"></i>
+            <span id="langLabel">12</span>
+        </button>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glass w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative">
+        
+        <!-- Header -->
+        <div class="p-8 pb-4 text-center border-b border-white/5">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-500/20 text-brand-500 mb-4">
+                <i data-lucide="smartphone" class="w-6 h-6"></i>
+            </div>
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400" data-i18n="title">
+                Nokia Legacy Converter
+            </h1>
+            <p class="text-sm text-gray-400 mt-2" data-i18n="subtitle">
+                Optimize videos for all MOCOR based devices
+            </p>
+        </div>
+
+        <div class="p-8">
+            
+            <!-- STATE 1: UPLOAD -->
+            <div id="section-upload" class="fade-enter-active">
+                <div class="group relative w-full h-64 border-2 border-dashed border-gray-700 rounded-2xl hover:border-brand-500 hover:bg-brand-500/5 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center" id="dropZone">
+                    <input type="file" id="fileInput" accept="video/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                    
+                    <div class="p-4 transition-transform duration-300 group-hover:scale-110">
+                        <div class="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400 group-hover:text-brand-500 group-hover:bg-brand-500/20 transition-colors">
+                            <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                        </div>
+                        <p class="text-lg font-medium text-gray-200" data-i18n="dropText">
+                            Drop video here
+                        </p>
+                        <p class="text-sm text-gray-500 mt-1" data-i18n="browseText">
+                            or click to browse
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex items-start gap-3 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
+                    <i data-lucide="info" class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5"></i>
+                    <div class="text-xs text-yellow-200/80">
+                        <strong class="block text-yellow-500 mb-1" data-i18n="specsTitle">Target Specs:</strong>
+                        MJPEG Codec • 640x360 • 18 FPS • 1000k Bitrate • Mono Audio
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATE 2: PROCESSING -->
+            <div id="section-process" class="hidden-section fade-enter">
+                <div class="flex flex-col items-center justify-center py-4">
+                    <div class="relative w-20 h-20 mb-6">
+                        <div class="absolute inset-0 border-4 border-gray-700 rounded-full"></div>
+                        <div class="absolute inset-0 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
+                        <i data-lucide="cpu" class="absolute inset-0 m-auto w-8 h-8 text-gray-500 animate-pulse"></i>
+                    </div>
+                    
+                    <h2 class="text-xl font-semibold animate-pulse" id="statusLabel" data-i18n="converting">Converting...</h2>
+                    <p class="text-sm text-gray-500 mt-1 mb-6" data-i18n="waitText">Please wait, this happens locally in your browser.</p>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-800 rounded-full h-2.5 mb-2 overflow-hidden">
+                        <div id="progressBar" class="bg-brand-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    
+                    <!-- Console Log -->
+                    <div id="log" class="w-full h-32 bg-black/50 rounded-xl border border-gray-800 p-3 font-mono text-[10px] text-green-400 overflow-y-auto custom-scroll mt-4 shadow-inner">
+                        <div class="opacity-50">> System initialized...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATE 3: SUCCESS -->
+            <div id="section-success" class="hidden-section fade-enter text-center">
+                <div class="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="check" class="w-10 h-10"></i>
+                </div>
+                
+                <h2 class="text-2xl font-bold text-white mb-2" data-i18n="doneTitle">All Done!</h2>
+                <p class="text-gray-400 text-sm mb-8" data-i18n="doneSubtitle">Your video is ready for your Nokia device.</p>
+
+                <a id="downloadBtn" class="flex items-center justify-center gap-2 w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 px-6 rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-brand-500/25 cursor-pointer">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    <span data-i18n="downloadBtn">Download AVI</span>
+                </a>
+
+                <button id="resetBtn" class="mt-4 text-sm text-gray-500 hover:text-white underline transition-colors" data-i18n="convertAnother">
+                    Convert another video
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+        <a href="https://github.com/cfopuser/NokiaVidConvertor" target="_blank" class="mt-4 text-slate-400 hover:text-brand-dark transition">
+        <i class="fa-brands fa-github text-xl"></i>
+        </a>
+
+
+
+
+<script>
+    // --- Configuration & i18n ---
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    let ffmpeg = null;
+    
+    const translations = {
+        en: {
+            title: "Nokia Legacy Converter",
+            subtitle: "Converts videos for all MOCOR based devices",
+            dropText: "Drop video here",
+            browseText: "or click to browse",
+            specsTitle: "Target Specs:",
+            loading: "Loading Engine...",
+            converting: "Processing Video...",
+            waitText: "Please wait, this happens locally in your browser.",
+            doneTitle: "All Done!",
+            doneSubtitle: "Your video is ready for your Nokia device.",
+            downloadBtn: "Download .AVI Video",
+            convertAnother: "Convert another video",
+            error: "An error occurred.",
+            status_read: "Reading file...",
+            status_start: "Starting conversion...",
+            status_complete: "Conversion complete!"
+        },
+        he: {
+            title: "ממיר וידאו לנוקיה",
+            subtitle: "עובד לכול המכשירים מבוססי MOCOR",
+            dropText: "גרור וידאו לכאן",
+            browseText: "או לחץ לבחירה",
+            specsTitle: "מפרט יעד:",
+            loading: "טוען מנוע...",
+            converting: "מעבד וידאו...",
+            waitText: "אנא המתן, העיבוד מתבצע בדפדפן שלך.",
+            doneTitle: "מוכן!",
+            doneSubtitle: "הוידאו מוכן למכשיר הנוקיה שלך.",
+            downloadBtn: "הורד קובץ AVI",
+            convertAnother: "המר וידאו נוסף",
+            error: "אירעה שגיאה.",
+            status_read: "קורא קובץ...",
+            status_start: "מתחיל המרה...",
+            status_complete: "ההמרה הושלמה!"
+        }
+    };
+
+        function getInitialLanguage() {
+            // 1. Check if user previously picked a language
+            const savedLang = localStorage.getItem('preferredLanguage');
+            if (savedLang) return savedLang;
+
+            // 2. Check browser language (e.g., "he-IL" or "en-US")
+            const browserLang = navigator.language || navigator.userLanguage;
+            if (browserLang.startsWith('he')) {
+                return 'he';
+            }
+
+            // 3. Default to English
+            return 'en';
+        }
+
+        let currentLang = getInitialLanguage();
+
+    function detectLanguage() {
+        const userLang = navigator.language || navigator.userLanguage;
+        setLanguage(userLang.startsWith('he') ? 'he' : 'en');
+    }
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        const isRTL = lang === 'he';
+        
+        // Update DOM Direction
+        document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+        document.getElementById('langLabel').innerText = lang.toUpperCase();
+
+        // Update Text
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if(translations[lang][key]) {
+                el.innerText = translations[lang][key];
+            }
+        });
+    }
+
+    // --- UI Helpers ---
+    const logBox = document.getElementById('log');
+    const progressBar = document.getElementById('progressBar');
+    
+    const log = (msg) => {
+        const line = document.createElement('div');
+        line.innerText = `> ${msg}`;
+        logBox.appendChild(line);
+        logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    function switchSection(sectionId) {
+        ['section-upload', 'section-process', 'section-success'].forEach(id => {
+            const el = document.getElementById(id);
+            if (id === sectionId) {
+                el.classList.remove('hidden-section');
+                // Small delay to allow display:block to apply before opacity transition
+                setTimeout(() => el.classList.add('fade-enter-active'), 10);
+            } else {
+                el.classList.remove('fade-enter-active');
+                el.classList.add('hidden-section');
+            }
+        });
+    }
+
+    // --- Core Logic ---
+    async function initFFmpeg() {
+        if (!ffmpeg) {
+            ffmpeg = createFFmpeg({
+                log: false, // We handle logging manually to keep UI clean
+                corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+            });
+            
+            ffmpeg.setLogger(({ type, message }) => {
+                // Filter logs for UI
+                if(type !== 'info') return;
+                log(message);
+                
+                // Parse progress roughly (FFmpeg output format specific)
+                if (message.includes('time=')) {
+                    // Just a visual pulse for processing as total duration is hard to predict
+                    // without probing first. We'll animate the bar indefinitely or use steps.
+                    progressBar.classList.add('animate-pulse');
+                    progressBar.style.width = '75%'; 
+                }
+            });
+            
+            await ffmpeg.load();
+        }
+    }
+
+    async function processFile(file) {
+        switchSection('section-process');
+        const t = translations[currentLang];
+        document.getElementById('statusLabel').innerText = t.loading;
+        progressBar.style.width = '10%';
+        logBox.innerHTML = '';
+
+        try {
+            await initFFmpeg();
+            
+            document.getElementById('statusLabel').innerText = t.converting;
+            log(t.status_read);
+            
+            const inputName = 'input_video';
+            const outputName = 'nokia_video.avi';
+
+            ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+
+            log(t.status_start);
+            progressBar.style.width = '30%';
+
+            // Run FFmpeg
+            // Specs: MJPEG, 640x360 (nHD), 18fps, 1000k bitrate, Mono 32kHz audio
+            await ffmpeg.run(
+                '-i', inputName,
+                '-c:v', 'mjpeg',
+                '-s', '640x360',
+                '-b:v', '1000k',
+                '-r', '18',
+                '-ac', '1',
+                '-ar', '32000',
+                outputName
+            );
+
+            progressBar.style.width = '100%';
+            log(t.status_complete);
+
+            const data = ffmpeg.FS('readFile', outputName);
+            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/x-msvideo' }));
+            
+            // Setup Download
+            const btn = document.getElementById('downloadBtn');
+            btn.href = url;
+            const originalName = file.name.split('.').slice(0, -1).join('.');
+            btn.download = `${originalName}_nokia.avi`;
+
+            // Cleanup FFmpeg memory
+            ffmpeg.FS('unlink', inputName);
+            ffmpeg.FS('unlink', outputName);
+
+            setTimeout(() => {
+                switchSection('section-success');
+                // Re-render icons for the new section
+                lucide.createIcons();
+            }, 800);
+
+        } catch (err) {
+            console.error(err);
+            log(`ERROR: ${err.message}`);
+            document.getElementById('statusLabel').innerText = t.error;
+            document.getElementById('statusLabel').classList.add('text-red-500');
+        }
+    }
+
+    // --- Event Listeners ---
+    document.addEventListener('DOMContentLoaded', () => {
+        detectLanguage();
+        lucide.createIcons();
+
+        // Language Toggle
+        document.getElementById('langToggle').onclick = () => {
+            setLanguage(currentLang === 'en' ? 'he' : 'en');
+        };
+
+        // File Input
+        const fileInput = document.getElementById('fileInput');
+        fileInput.onchange = (e) => {
+            if (e.target.files[0]) processFile(e.target.files[0]);
+        };
+
+        // Reset
+        document.getElementById('resetBtn').onclick = () => {
+            fileInput.value = '';
+            progressBar.style.width = '0%';
+            switchSection('section-upload');
+        };
+    });
+
+</script>
+</body>
+</html>
