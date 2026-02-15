@@ -12,6 +12,8 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="coi-serviceworker.js"></script>
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -410,7 +412,7 @@
         const dropZone = document.getElementById('dropZone');
         const iconContainer = dropZone.querySelector('.group-hover\\:scale-110');
         const iconCircle = dropZone.querySelector('.group-hover\\:text-brand-500');
-            
+
         const toggleHoverState = (isHovering) => {
             // Container styles
             dropZone.classList.toggle('border-brand-500', isHovering);
@@ -422,21 +424,21 @@
                 iconCircle.classList.toggle('bg-brand-500/20', isHovering);
             }
         };
-        
+
         ['dragenter', 'dragover'].forEach(name => {
             dropZone.addEventListener(name, (e) => {
                 e.preventDefault();
                 toggleHoverState(true);
             });
         });
-        
+
         ['dragleave', 'drop'].forEach(name => {
             dropZone.addEventListener(name, (e) => {
                 e.preventDefault();
                 toggleHoverState(false);
             });
         });
-        
+
         dropZone.addEventListener('drop', (e) => {
             const files = e.dataTransfer.files;
             if (files.length > 0) {
